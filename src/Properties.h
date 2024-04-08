@@ -225,9 +225,9 @@ public:
 		for (auto& p:binary_props)
 			p.print();
 		if (user_properties.size()){
-			H4AMC_PRINT1("\tUSER PROPERTIES %d:\n", user_properties.size());
+			H4AMC_PRINT2("\tUSER PROPERTIES %d:\n", user_properties.size());
 			for (auto& p:user_properties)
-				H4AMC_PRINT1("\t\t\"%s\":\"%s\"\n", p.first.c_str(), p.second.c_str());
+				H4AMC_PRINT2("\t\t\"%s\":\"%s\"\n", p.first.c_str(), p.second.c_str());
 		}
 	}
 #endif

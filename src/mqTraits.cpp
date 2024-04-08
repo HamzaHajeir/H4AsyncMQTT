@@ -303,12 +303,12 @@ mqttTraits::mqttTraits(uint8_t* p,size_t s): data(p){ // Properties .. topic ali
             break;
         case CONNECT:
             {
-                uint8_t cf=data[9];
-                H4AMC_PRINT3("  Protocol: %s\n",data[8]==4 ? "3.1.1":stringFromInt(data[8],"0x%02x").data());
+                uint8_t cf=*(i+7);
+                H4AMC_PRINT3("  Protocol: %s\n",*(i+6)==0x4 ? "3.1.1":stringFromInt(data[8],"0x%02x").data());
                 H4AMC_PRINT4("  Flags: 0x%02x\n",cf);
                 H4AMC_PRINT3("  Session: %s\n",((cf & CLEAN_START) >> 1) ? "Clean":"Dirty");
-                H4AMC_PRINT3("  Keepalive: %d\n",_peek16(&data[10]));
-                uint8_t* sp=&data[12];
+                H4AMC_PRINT3("  Keepalive: %d\n",_peek16(i+8));
+                uint8_t* sp=i+10;
 #if MQTT5
                 // Connect Properties.
                 auto ret = initiateProperties(sp);

@@ -259,7 +259,7 @@ void Packet::_multiTopic(std::set<std::string> topics,H4AMC_SubscriptionOptions 
         };
 #endif // MQTT5
     };
-    _varHeader = [=](uint8_t *p)
+    _varHeader = [this](uint8_t *p)
     {
         p = _poke16(p, _id);
 #if MQTT5
@@ -421,7 +421,7 @@ ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
 
     _varHeader=[=](uint8_t* p){
         memcpy(p,&protocol,8);p+=8;
-        p=_poke16(p,_parent->_keepalive);
+        p=_poke16(p,_parent->_getKeepAliveSeconds());
 #if MQTT5
         p=_properties(p);
 #endif

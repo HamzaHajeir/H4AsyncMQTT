@@ -87,7 +87,7 @@ class Packet {
 
 class ConnectPacket: public Packet {
 #if MQTT5
-                H4AMC_FN_U8PTRU8 _willproperties=[](uint8_t* p){ return H4AMC_Helpers::encodeVariableByteInteger(p, 0);; }; // default to encodeVariableByte(0)
+                H4AMC_FN_U8PTRU8 _willproperties=[](uint8_t* p){ return H4AMC_Helpers::encodeVariableByteInteger(p, 0); }; // default to encodeVariableByte(0)
                 std::string _authmethod;
                 std::vector<uint8_t> _authdata;
 #endif

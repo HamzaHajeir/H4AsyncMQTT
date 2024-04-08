@@ -418,6 +418,7 @@ class H4AsyncMQTT {
                                         return 0;
                                     }
         inline  void                _startReconnector();
+        inline  uint16_t            _getKeepAliveSeconds() { return _keepalive / 1000; }
     public:
                 H4AsyncClient*      _h4atClient;
         H4AsyncMQTT();

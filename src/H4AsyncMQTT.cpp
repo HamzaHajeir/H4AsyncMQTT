@@ -180,7 +180,7 @@ void H4AsyncMQTT::_startPinging(uint32_t keepalive)
     _keepalive = keepalive;
     H4AMC_PRINT1("KA = %d\n",_keepalive - H4AMC_HEADROOM);
     static uint8_t PING[]={PINGREQ,0};    
-    h4.every(_keepalive - H4AMC_HEADROOM,[=]{
+    h4.every(_keepalive - H4AMC_HEADROOM,[this]{
         if(_state==H4AMC_RUNNING){//} && ((millis() - _h4atClient->_lastSeen) > _keepalive)){ // 100 = headroom
             H4AMC_PRINT1("MQTT PINGREQ\n");
             _send(PING, 2, false); /// optimise
@@ -206,13 +206,13 @@ void H4AsyncMQTT::_connect(){
     _h4atClient = new H4AsyncClient;
     _state = H4AMC_CONNECTING;
     
-    _h4atClient->onConnect([=](){
+    _h4atClient->onConnect([this](){
         H4AMC_PRINT1("on TCP Connect\n");
         _h4atClient->nagle(true);
         h4.cancelSingleton(H4AMC_RCX_ID);
         _startPinging();
         _state=H4AMC_TCP_CONNECTED;
-        h4.queueFunction([=]{ ConnectPacket cp{this}; }); // offload required for esp32 to get off tcpip thread
+        h4.queueFunction([this]{ ConnectPacket cp{this}; }); // offload required for esp32 to get off tcpip thread
     });
 
     static auto onDisconnect = [this] {
@@ -222,12 +222,12 @@ void H4AsyncMQTT::_connect(){
         _startReconnector();
     };
 
-    _h4atClient->onConnectFail([=](){
+    _h4atClient->onConnectFail([this](){
         H4AMC_PRINT1("onConnectFail - reconnect\n");
         onDisconnect();
     });
 
-    _h4atClient->onDisconnect([=]{
+    _h4atClient->onDisconnect([this]{
         H4AMC_PRINT1("onDisconnect - reconnect STATE %d\n", _state);
         if(_state==H4AMC_RUNNING || _state == H4AMC_TCP_ERROR) onDisconnect();
 #if MQTT5
@@ -236,7 +236,7 @@ void H4AsyncMQTT::_connect(){
 #endif
     });
 
-    _h4atClient->onError([=](int error,int info){
+    _h4atClient->onError([this](int error,int info){
         H4AMC_PRINT1("onError %d info=%d\n",error,info);
         if(error||info) _notify(error,info);
         if (error && _state == H4AMC_RUNNING) _state = H4AMC_TCP_ERROR;
@@ -249,7 +249,7 @@ void H4AsyncMQTT::_connect(){
     static std::string lastURL;
     _h4atClient->enableTLSSession();
     _h4atClient->onSession(
-        [=](void *tls_session)
+        [this](void *tls_session)
         {
             H4AMC_PRINT1("onSession(%p)\n", tls_session);
             _tlsSession = const_cast<void *>(tls_session);
@@ -272,7 +272,7 @@ void H4AsyncMQTT::_connect(){
     lastURL = _url;
 #endif
 
-    _h4atClient->onRX([=](const uint8_t* data,size_t len){ _handlePacket((uint8_t*) data,len); });
+    _h4atClient->onRX([this](const uint8_t* data,size_t len){ _handlePacket((uint8_t*) data,len); });
 
 #if H4AT_TLS
     auto cas = _caCert.size();
@@ -930,7 +930,7 @@ void H4AsyncMQTT::_runGuard(H4AMC_FN_VOID f){
     else _notify(0,H4AMC_NOT_RUNNING);
 }
 
-void H4AsyncMQTT::_startReconnector(){ h4.every(5000,[=]{ _connect(); },nullptr,H4AMC_RCX_ID,true); }
+void H4AsyncMQTT::_startReconnector(){ h4.every(5000,[this]{ _connect(); },nullptr,H4AMC_RCX_ID,true); }
 //
 //      PUBLIC
 //
@@ -970,7 +970,7 @@ std::string H4AsyncMQTT::errorstring(int e){
     #endif
 }
 
-PacketID H4AsyncMQTT::publish(const char* topic, const uint8_t* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { return _runGuard([=]{ PublishPacket pub(this,topic,qos,payload,length,opts_retain); return pub.getId(); }, (PacketID)0); }
+PacketID H4AsyncMQTT::publish(const char* topic, const uint8_t* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { return _runGuard([=, &opts_retain]{ PublishPacket pub(this,topic,qos,payload,length,opts_retain); return pub.getId(); }, (PacketID)0); }
 
 PacketID H4AsyncMQTT::publish(const char* topic, const char* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { 
 #if MQTT5
@@ -990,13 +990,13 @@ void H4AsyncMQTT::setWill(const char* topic, uint8_t qos, const char* payload, H
 #endif
 }
 
-uint32_t H4AsyncMQTT::subscribe(const char* topic, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=](void){ SubscribePacket sub(this,topic,opts_qos); return sub.getId(); }, (uint32_t)0); }
+uint32_t H4AsyncMQTT::subscribe(const char* topic, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, &opts_qos](void){ SubscribePacket sub(this,topic,opts_qos); return sub.getId(); }, (uint32_t)0); }
 
-uint32_t H4AsyncMQTT::subscribe(std::initializer_list<const char*> topix, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=]{ SubscribePacket sub(this,topix,opts_qos); return sub.getId(); }, (uint32_t)0); }
+uint32_t H4AsyncMQTT::subscribe(std::initializer_list<const char*> topix, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, &opts_qos]{ SubscribePacket sub(this,topix,opts_qos); return sub.getId(); }, (uint32_t)0); }
 
 void H4AsyncMQTT::unsubscribe(const char* topic) {_runGuard([=]{ UnsubscribePacket usp(this,topic); }); }
 
-void H4AsyncMQTT::unsubscribe(std::initializer_list<const char*> topix) {_runGuard([=]{  UnsubscribePacket usp(this,topix); }); }
+void H4AsyncMQTT::unsubscribe(std::initializer_list<const char*> topix) {_runGuard([=, &topix]{  UnsubscribePacket usp(this,topix); }); }
 #if MQTT_SUBSCRIPTION_IDENTIFIERS_SUPPORT
 void H4AsyncMQTT::unsubscribe(uint32_t subscription_id) {
     if (_subsResources.count(subscription_id)) { 

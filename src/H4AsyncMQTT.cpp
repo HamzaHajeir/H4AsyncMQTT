@@ -596,7 +596,7 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
                     // Serial.printf("copy=%p\n", copy);
                 }
 
-                h4.queueFunction([=]()
+                h4.queueFunction([=, this]()
                                     { _handlePacket(data, len, 0, copy); });
             }
         }
@@ -970,7 +970,7 @@ std::string H4AsyncMQTT::errorstring(int e){
     #endif
 }
 
-PacketID H4AsyncMQTT::publish(const char* topic, const uint8_t* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { return _runGuard([=, &opts_retain]{ PublishPacket pub(this,topic,qos,payload,length,opts_retain); return pub.getId(); }, (PacketID)0); }
+PacketID H4AsyncMQTT::publish(const char* topic, const uint8_t* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { return _runGuard([=, this, &opts_retain]{ PublishPacket pub(this,topic,qos,payload,length,opts_retain); return pub.getId(); }, (PacketID)0); }
 
 PacketID H4AsyncMQTT::publish(const char* topic, const char* payload, size_t length, uint8_t qos, H4AMC_PublishOptions opts_retain) { 
 #if MQTT5
@@ -990,17 +990,17 @@ void H4AsyncMQTT::setWill(const char* topic, uint8_t qos, const char* payload, H
 #endif
 }
 
-uint32_t H4AsyncMQTT::subscribe(const char* topic, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, &opts_qos](void){ SubscribePacket sub(this,topic,opts_qos); return sub.getId(); }, (uint32_t)0); }
+uint32_t H4AsyncMQTT::subscribe(const char* topic, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, this, &opts_qos](void){ SubscribePacket sub(this,topic,opts_qos); return sub.getId(); }, (uint32_t)0); }
 
-uint32_t H4AsyncMQTT::subscribe(std::initializer_list<const char*> topix, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, &opts_qos]{ SubscribePacket sub(this,topix,opts_qos); return sub.getId(); }, (uint32_t)0); }
+uint32_t H4AsyncMQTT::subscribe(std::initializer_list<const char*> topix, H4AMC_SubscriptionOptions opts_qos) { return _runGuard([=, this, &opts_qos]{ SubscribePacket sub(this,topix,opts_qos); return sub.getId(); }, (uint32_t)0); }
 
-void H4AsyncMQTT::unsubscribe(const char* topic) {_runGuard([=]{ UnsubscribePacket usp(this,topic); }); }
+void H4AsyncMQTT::unsubscribe(const char* topic) {_runGuard([=, this]{ UnsubscribePacket usp(this,topic); }); }
 
-void H4AsyncMQTT::unsubscribe(std::initializer_list<const char*> topix) {_runGuard([=, &topix]{  UnsubscribePacket usp(this,topix); }); }
+void H4AsyncMQTT::unsubscribe(std::initializer_list<const char*> topix) {_runGuard([=, this, &topix]{  UnsubscribePacket usp(this,topix); }); }
 #if MQTT_SUBSCRIPTION_IDENTIFIERS_SUPPORT
 void H4AsyncMQTT::unsubscribe(uint32_t subscription_id) {
     if (_subsResources.count(subscription_id)) { 
-        _runGuard([=]{ UnsubscribePacket usp(this, _subsResources[subscription_id].topix); });
+        _runGuard([=, this]{ UnsubscribePacket usp(this, _subsResources[subscription_id].topix); });
     } else {
         _notify(0,H4AMC_SUBID_NOT_FOUND);
     }

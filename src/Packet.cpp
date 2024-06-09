@@ -248,7 +248,7 @@ void Packet::_multiTopic(std::set<std::string> topics,H4AMC_SubscriptionOptions 
 
         _bs += _propertyLength + H4AMC_Helpers::varBytesLength(_propertyLength);
 
-        _properties = [=, &opts](uint8_t* p){
+        _properties = [=, this, &opts](uint8_t* p){
             p = H4AMC_Helpers::encodeVariableByteInteger(p, _propertyLength);
 #if MQTT_SUBSCRIPTION_IDENTIFIERS_SUPPORT
             if (use_subId && !unsub)
@@ -268,7 +268,7 @@ void Packet::_multiTopic(std::set<std::string> topics,H4AMC_SubscriptionOptions 
         return p;
     };
 
-    _protocolPayload=[=, &opts](uint8_t* p,uint8_t* base){
+    _protocolPayload=[=, this, &opts](uint8_t* p,uint8_t* base){
         for(auto const& t:topics){ // not blocks because it's passed already.
             size_t n=t.size();
             p=_poke16(p,n);
@@ -325,7 +325,7 @@ uint8_t* Packet::_applyfront(uint8_t* p_pos)
 ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
     _bs=10;
 
-    _begin=[=]{
+    _begin=[=, this]{
         // if((_parent->_cleanStart && !_parent->_haveSessionData()) || !H4AsyncMQTT::_outbound.size()) protocol[7]|=CLEAN_START;
         if(!_parent->_haveSessionData()) protocol[7]|=CLEAN_START;
         // clientID --> Will properties --> wil lTopic --> willPayload --> username --> password
@@ -396,7 +396,7 @@ ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
         }
         _bs += _propertyLength + H4AMC_Helpers::varBytesLength(_propertyLength);
 
-        _properties=[=](uint8_t* p){
+        _properties=[=, this](uint8_t* p){
             p = H4AMC_Helpers::encodeVariableByteInteger(p, _propertyLength);
             p = MQTT_Properties::serializeProperty(PROPERTY_SESSION_EXPIRY_INTERVAL, p, MQTT_CONNECT_SESSION_EXPRITY_INTERVAL);
             p = MQTT_Properties::serializeProperty(PROPERTY_RECEIVE_MAXIMUM, p, MQTT_CONNECT_RECEIVE_MAXIMUM);
@@ -419,7 +419,7 @@ ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
 #endif // MQTT5
     };
 
-    _varHeader=[=](uint8_t* p){
+    _varHeader=[=, this](uint8_t* p){
         memcpy(p,&protocol,8);p+=8;
         p=_poke16(p,_parent->_getKeepAliveSeconds());
 #if MQTT5
@@ -428,7 +428,7 @@ ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
         return p;
     };
 
-    _protocolPayload=[=](uint8_t* p_pos,uint8_t* base){
+    _protocolPayload=[=, this](uint8_t* p_pos,uint8_t* base){
         // [ClientID] --> [Will properties] --> [willTopic -> willPayload -> username -> password]
         p_pos = _applyfront(p_pos); // ClientID
 #if MQTT5
@@ -531,7 +531,7 @@ PublishPacket::PublishPacket(H4AsyncMQTT* p,const char* topic, uint8_t qos, cons
             return p_pos;
         };
 
-        _protocolPayload=[=](uint8_t* p,uint8_t* base){ 
+        _protocolPayload=[=, this](uint8_t* p,uint8_t* base){ 
             memcpy(p,payload,_length);
             mqttTraits T(base,_bs);
             if(_qos) H4AsyncMQTT::_outbound[_id]=T;

@@ -29,7 +29,7 @@ philbowles2012@gmail.com
 No warranties are given. The license may not give you all of the permissions necessary for your intended use. 
 For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.
 */
-#define H4AMC_VERSION "1.0.0-rc7"
+#define H4AMC_VERSION "1.0.0-rc8"
 #define H4AMC_ERROR_BASE 100
 /*
     Debug levels: 

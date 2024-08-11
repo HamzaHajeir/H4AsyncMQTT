@@ -376,7 +376,7 @@ class H4AsyncMQTT {
                 void                _clearAliases() { _tx_topic_alias.clear(), _rx_topic_alias.clear(); }
 #if H4AMC_MQTT5_INSERT_TOPIC_BY_ALIAS
                 // Makes an anatomy to the to-send-data, inserting topic name and remaining length.
-                bool                _insertTopicAlias(mqttTraits& m);
+                bool                _insertTopicAlias(mqttTraits& m, std::vector<std::string>& remaining);
 #endif
                 void                _runFlow() {
                                         if (_pending.size() && _outbound.count(_pending.front())){

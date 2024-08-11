@@ -714,8 +714,10 @@ uint16_t H4AsyncMQTT::_getTXAlias(const std::string& topic) { // [ ] Test operat
     return std::distance(ta.begin(),it)+1;
 }
 #if H4AMC_MQTT5_INSERT_TOPIC_BY_ALIAS
-bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m)
+bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& remaining)
 {
+    // [ ] TODO: Clean the replacing function.
+    // [ ] Might erase the Topic Alias property, to start with a clean set.. Or just clear the _tx_topic_alias after resending..
     // [x] fetch topic
     std::string topic = _getTXAliasTopic(m._topic_alias);
     H4AMC_PRINT2("_insertTopicAlias %s %d alias %d\n", topic.c_str(), m._topic_index, m._topic_alias);
@@ -724,7 +726,65 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m)
         H4AMC_PRINT2("MISSING TOPIC ALIAS OR POS! %d %d\n", m.id, m._topic_index);
         return false;
     }
+#define INSERTION_METHOD 1
 
+#ifdef INSERTION_METHOD // Reallocates only once.
+    auto topicIt = std::find(remaining.begin(), remaining.end(), topic); 
+    if (topicIt == remaining.end()) {
+        H4AMC_PRINT2("Topic Alias has been already inserted in a previous packet\n");
+        return false;
+    }
+    // [x] insert topic
+    std::vector<uint8_t> copy; 
+    // Copy First byte of Fixed header
+    std::copy_n(m.data, 1, std::back_inserter(copy));
+    auto rl_len = H4AMC_Helpers::varBytesLength(m.remlen);
+    m.remlen += topic.length();
+    auto diff_bytes = H4AMC_Helpers::varBytesLength(m.remlen) - rl_len;
+    uint8_t firstByte = m.data[0];
+    std::vector<uint8_t> frag1{m.data+1+rl_len, m.data+m._topic_index};
+    std::vector<uint8_t> frag2{m.data+m._topic_index+2, m.data+m.len};
+
+    auto ptr = mbx::realloc(m.data, m.len + topic.length() + diff_bytes);
+    
+    uint32_t oldLen = m.len;
+    if (ptr != nullptr){
+        m.data = ptr;
+        m.len += topic.length()+diff_bytes;
+
+        copy.reserve(m.len);
+
+        // Encode remlen to a buffer
+        uint8_t rembuf[rl_len+diff_bytes];
+        H4AMC_Helpers::encodeVariableByteInteger(rembuf, m.remlen);
+
+        // Insert remlen
+        copy.insert(copy.end(), rembuf, rembuf+rl_len+diff_bytes);
+
+        // Insert the date between fixed header and the topic index. 
+        // [ ] Check if more than one topic is inserted. (Specification does not mention whether one message can only carry one topic alias, or more)
+        copy.insert(copy.end(), std::make_move_iterator(frag1.begin()), std::make_move_iterator(frag1.end()));
+        frag1.clear();
+
+        // Encode topic to a buffer
+        size_t addmeta=topic.length()+2;
+        uint8_t buf[addmeta];
+        H4AMC_Helpers::encodestring(&buf[0],topic);
+        
+        // Insert the topic data
+        copy.insert(copy.end(), buf, buf+addmeta);
+
+        // Insert the remaining data
+        copy.insert(copy.end(), std::make_move_iterator(frag2.begin()), std::make_move_iterator(frag2.end()));
+        frag2.clear();
+
+        std::copy_n(copy.begin(), m.len, m.data);
+        H4AMC_PRINT4("INSERTED TOPIC NEW BUFFER:\n");
+        H4AMC_DUMP4(m.data, m.len);
+        remaining.erase(topicIt);
+        return true;
+    }
+#else // The Replacing method: Which will require a reallocation
     // [x] insert topic
     std::vector<uint8_t> copy; 
     copy.reserve(m.len);
@@ -756,13 +816,14 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m)
         // Replace topic
         copy.erase(copy.begin()+m._topic_index); // Erase Topic Length (Field0)
         copy.erase(copy.begin()+m._topic_index); // Erase Topic Length (Field1)
-        copy.insert(copy.begin()+m._topic_index, buf, buf+addmeta);
+        copy.insert(copy.begin()+m._topic_index, buf, buf+addmeta); // A reallocation which would contribute to heap fragmentation / or abort with OOM
 
         std::copy_n(copy.begin(), m.len, m.data);
         H4AMC_PRINT4("INSERTED TOPIC NEW BUFFER:\n");
         H4AMC_DUMP4(m.data, m.len);
         return true;
     }
+#endif
 
     return false;
 }
@@ -870,7 +931,11 @@ void H4AsyncMQTT::_resendPartialTxns(bool availSession){ // [ ] Rename to handle
     H4AMC_PRINT2("_resendPartialTxns(%d) _outbound=%d\n", availSession, _outbound.size());
     std::vector<uint16_t> morituri;
     H4AMC_PACKET_MAP copy;
+#if H4AMC_MQTT5_INSERT_TOPIC_BY_ALIAS
+    auto aliasCopy = _tx_topic_alias;
+#endif
     for(auto const& o:_outbound){
+        // [ ] Try them over queueFunction() because of memory runout (if to _insertTopicAlias to large payloads)
         mqttTraits m=o.second;
         if(--(m.retries)){
             if(m.pubrec){
@@ -887,7 +952,7 @@ void H4AsyncMQTT::_resendPartialTxns(bool availSession){ // [ ] Rename to handle
 #if MQTT5
                     if (!m.topic.length()) {
 #if H4AMC_MQTT5_INSERT_TOPIC_BY_ALIAS
-                        if (_insertTopicAlias(m)) copy[m.id]=m;
+                        if (_insertTopicAlias(m, aliasCopy)) copy[m.id]=m;
                         else
 #endif
                         {

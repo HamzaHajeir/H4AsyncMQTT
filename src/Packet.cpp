@@ -484,7 +484,7 @@ PublishPacket::PublishPacket(H4AsyncMQTT* p,const char* topic, uint8_t qos, cons
             // [ ] Make assigning topic aliases available only for QoS1 and QoS2 only. 
             if (_parent->_isTXAliasAvailable(topic)) {
                 props.topic_alias = _parent->_getTXAlias(topic);
-            } else if (_parent->_availableTXAliasSpace()) {
+            } else if (_parent->_availableTXAliasSpace()) { // [ ] && payload size to topic size is relatively small: identify. OR Let the user decide to prevent it.
                 props.topic_alias = _parent->_assignTXAlias(topic);
             }
 

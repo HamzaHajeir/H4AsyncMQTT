@@ -1,6 +1,6 @@
 ![mbm](assets/pangoplain.jpg)
 
-# Asynchronous ArduinoIDE MQTT 3.1.1 and 5.0 client library for ESP8266, ESP32
+# Asynchronous Arduino MQTT 3.1.1 and 5.0 client library for ESP8266, ESP32, and RP2040
 
 ---
 
@@ -66,7 +66,7 @@ H4AsyncMQTT automatically fragments outbound packets and reassembles inbound pac
 
 ## Full QoS1 / QoS2 compatibility / recovery
 
-H4AsyncMQTT's author is unaware of any similar libraries for ESP8266/ESP32 that *fully* and *correctly* implement QoS1/2 *in all circumstances*.
+H4AsyncMQTT's author is unaware of any similar libraries for ESP8266/ESP32/RP2040 that *fully* and *correctly* implement QoS1/2 *in all circumstances*.
 
 They *may* sometimes work, e.g. with only small packets and/or slow send rates but fail when either increases. None will correctly recover "lost" messages on unexpected disconnect. Given that this is pretty much the *only* purpose of QoS1/2 then any library *not* fulfilling this promise *cannot* legitimately claim to be QoS1/2 compatible. If a library does not do this:
 
@@ -79,7 +79,7 @@ Then it ***does not support QoS1/2*** no matter what claims it may make.
 
 # The "menagerie" roadmap
 
-H4AsyncMQTT is one of a family of firmware packages for simple *robust* and rapid ***asynchronous*** IOT development on ESP8266 / ESP32
+H4AsyncMQTT is one of a family of firmware packages for simple *robust* and rapid ***asynchronous*** IOT development on ESP8266 / ESP32 / RP2040
 
 SEE [Installation](#installation)
 
@@ -112,8 +112,16 @@ SEE [Installation](#installation)
 ---
 
 # Installation
+## PlatformIO
 
-Please see [H4 Installer](https://github.com/philbowles/h4installer)
+One can get a homogeneous H4 Stack versions from the [PlatformIO H4Plugins Environment](https://github.com/hamzahajeir/h4plugins_env). One can reuse the environment directly, or copy the parts of interest in the configuration file `platformio.ini` in a new project.
+
+## Arduino IDE
+
+Simply download the zip of this repository and install as an Arduino library: `Sketch/Include Library/Add .ZIP Library...`
+
+Up to come: See [H4 Installer](https://github.com/philbowles/h4installer)
+
 # Issues
 
 ## If you want a *quick* resolution, please follow these rules:

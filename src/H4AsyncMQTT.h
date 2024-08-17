@@ -429,7 +429,7 @@ class H4AsyncMQTT {
                 void                onDisconnect(H4AMC_FN_VOID callback){ _cbMQTTDisconnect=callback; }
                 void                onConnect(H4AMC_cbConnect callback){ _cbMQTTConnect=callback; }
 #if MQTT5
-        static  void                printUserProperty(H4AMC_USER_PROPERTIES& props) { for (auto p:props) Serial.printf("%s:%s\n", p.first.c_str(), p.second.c_str());}
+        static  void                printUserProperty(H4AMC_USER_PROPERTIES& props) { for (auto p:props) _H4AMC_PRINTF("%s:%s\n", p.first.c_str(), p.second.c_str());}
                 void                onRedirect(H4AMC_FN_STRING f) { _cbRedirect=f; }
                 void                onReason(H4AMC_FN_STRING f) { _cbReason=f; }
                 void                setAuthenticator(H4Authenticator* authenticator) { _authenticator = authenticator; }

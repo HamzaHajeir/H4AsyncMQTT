@@ -10,8 +10,9 @@
 #include <memory>
 #include <H4Tools.h>
 #include <set>
+#define _H4AMC_PRINTF(...) _H4T_PRINTF(__VA_ARGS__)
 #if H4AMC_DEBUG
-	#define H4AMC_PRINTF(...) Serial.printf(__VA_ARGS__)
+#define H4AMC_PRINTF(...) _H4AMC_PRINTF(__VA_ARGS__)
     template<int I, typename... Args>
     void H4AMC_PRINT(const char* fmt, Args... args) {
         if (H4AMC_DEBUG >= I) H4AMC_PRINTF(std::string(std::string("H4AMC:%d: H=%u M=%u ")+fmt).c_str(),I,_HAL_freeHeap(),_HAL_maxHeapBlock(),args...);

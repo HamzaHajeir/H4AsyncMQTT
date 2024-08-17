@@ -399,8 +399,8 @@ mqttTraits::mqttTraits(uint8_t* p,size_t s): data(p){ // Properties .. topic ali
 }
 
 void mqttTraits::dump(){
-    Serial.printf("PKTDUMP %s @ %p len=%d RL=%d off=%d flags=0x%02x\n",getPktName().data(),data,len,remlen,offset,flags);
-    Serial.printf("PKTDUMP %s id=%d qos=%d dup=%d ret=%d PR=%d PL=%p L=%d \n",topic.data(),id,qos,dup,retain,pubrec,payload,plen);
+    H4AMC_PRINTF("PKTDUMP %s @ %p len=%d RL=%d off=%d flags=0x%02x\n",getPktName().data(),data,len,remlen,offset,flags);
+    H4AMC_PRINTF("PKTDUMP %s id=%d qos=%d dup=%d ret=%d PR=%d PL=%p L=%d \n",topic.data(),id,qos,dup,retain,pubrec,payload,plen);
     dumphex(data,len);
 }
 #else

@@ -309,17 +309,17 @@ void H4AsyncMQTT::_hpDespatch(mqttTraits P){
             H4AMC_PRINT1("H4AMC INTERCEPTED\n");
             std::string pl((const char*) P.payload,P.plen);
             if(pl=="mem"){
-                Serial.printf("FH: %u\nMB: %u\nMP: %d\n",_HAL_freeHeap(),_HAL_maxHeapBlock(),getMaxPayloadSize());
+                _H4AMC_PRINTF("FH: %u\nMB: %u\nMP: %d\n",_HAL_freeHeap(),_HAL_maxHeapBlock(),getMaxPayloadSize());
             } 
             else if(pl=="info"){ 
-                Serial.printf("H4AT  Vn: %s\n",H4AT_VERSION);
-//                Serial.printf("CHECK FP: %d\n",H4AT_CHECK_FINGERPRINT);
-//                Serial.printf("SAFEHEAP: %d\n",H4T_HEAP_SAFETY);
-                Serial.printf("H4AMC Vn: %s\n",H4AMC_VERSION);
-                Serial.printf("NRETRIES: %d\n",H4AMC_MAX_RETRIES);
-                Serial.printf("start : %s\n",_haveSessionData() ? "clean":"dirty");
-                Serial.printf("clientID: %s\n",getClientId().data());
-                Serial.printf("keepaliv: %d\n",_keepalive);
+                _H4AMC_PRINTF("H4AT  Vn: %s\n",H4AT_VERSION);
+//                _H4AMC_PRINTF("CHECK FP: %d\n",H4AT_CHECK_FINGERPRINT);
+//                _H4AMC_PRINTF("SAFEHEAP: %d\n",H4T_HEAP_SAFETY);
+                _H4AMC_PRINTF("H4AMC Vn: %s\n",H4AMC_VERSION);
+                _H4AMC_PRINTF("NRETRIES: %d\n",H4AMC_MAX_RETRIES);
+                _H4AMC_PRINTF("start : %s\n",_haveSessionData() ? "clean":"dirty");
+                _H4AMC_PRINTF("clientID: %s\n",getClientId().data());
+                _H4AMC_PRINTF("keepaliv: %d\n",_keepalive);
             }
             else if(pl=="dump"){ dump(); }
         }

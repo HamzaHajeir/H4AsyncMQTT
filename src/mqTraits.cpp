@@ -197,6 +197,7 @@ mqttTraits::mqttTraits(uint8_t* p,size_t s): data(p){ // Properties .. topic ali
             // reasoncode=i[1];
 #if MQTT5
             // if (i[2]) initiateProperties(&i[2]);
+            [[fallthrough]];
         case DISCONNECT:
         case AUTH:
             if (remlen){

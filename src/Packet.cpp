@@ -443,7 +443,7 @@ ConnectPacket::ConnectPacket(H4AsyncMQTT* p): Packet(p,CONNECT){
 }
 
 PublishPacket::PublishPacket(H4AsyncMQTT* p,const char* topic, uint8_t qos, const uint8_t* payload, size_t length, H4AMC_PublishOptions opts_retain):
-    _topic(topic),_qos(qos),_retain(opts_retain.getRetained()),_length(length),Packet(p,PUBLISH) {
+    Packet(p,PUBLISH),_topic(topic),_qos(qos),_retain(opts_retain.getRetained()),_length(length) {
 
     if(length < getMaxPayloadSize()){
 #if MQTT5

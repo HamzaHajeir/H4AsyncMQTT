@@ -443,10 +443,10 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
             break;
 #if MQTT5
         case REASON_SERVER_MOVED:
+            [[fallthrough]];
         case REASON_USE_ANOTHER_SERVER:
             _redirect(*(traits.properties));
-
-            // break;
+            [[fallthrough]];
         default:
             H4AMC_PRINT1("CONNACK %s\n",mqttTraits::rcnames[static_cast<H4AMC_MQTT_ReasonCode>(rcode)]);
             _startClean(); // If a Server sends a CONNACK packet containing a non-zero Reason Code it MUST set Session Present to 0
@@ -460,6 +460,7 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
     }
         break;
     case PUBACK:
+        [[fallthrough]];
     case PUBCOMP:
 #if MQTT5
         if (rcode)
@@ -468,12 +469,14 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
         _publishEnd();
 #endif
         if (_cbPublish) _cbPublish(id);
+        [[fallthrough]];
     case UNSUBACK:
 #if MQTT_SUBSCRIPTION_IDENTIFIERS_SUPPORT
         if (_packSubIds.count(id)) {
             _confirmDeletion(id);
         }
 #endif
+        [[fallthrough]];
     case SUBACK:
     {
         bool badSub=false;
@@ -522,7 +525,7 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
             case REASON_SERVER_MOVED:
             case REASON_USE_ANOTHER_SERVER:
                 _redirect(props);
-            // break;
+                [[fallthrough]];
             default:
                 H4AMC_PRINT1("DISCONNECT %s\n", mqttTraits::rcnames[static_cast<H4AMC_MQTT_ReasonCode>(rcode)]);
                 _notify(H4AMC_SERVER_DISCONNECT, rcode);

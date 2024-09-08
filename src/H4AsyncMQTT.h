@@ -127,7 +127,7 @@ struct H4AMC_PublishOptions {
     friend class H4AsyncMQTT;
     bool retain;
 #if MQTT5
-    H4AMC_PublishOptions(bool retain = false, MQTT5PublishProperties props={}) : props(props), retain(retain) {}
+    H4AMC_PublishOptions(bool retain = false, MQTT5PublishProperties props={}) : retain(retain), props(props) {}
     MQTT5PublishProperties& getProperties() { return props; }
 #else
     H4AMC_PublishOptions(bool retain = false) : retain(retain) {}

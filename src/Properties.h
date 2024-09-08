@@ -257,10 +257,10 @@ struct MQTT5MessageProperties {
                                response_topic(resptopic), correlation_data(correlation), user_properties(props) {}
 };
 struct MQTT5WillProperties : public MQTT5MessageProperties {
-    MQTT5WillProperties(uint32_t delay, MQTT_Properties& props) : will_delay_interval(delay), MQTT5MessageProperties(props) {}
+    MQTT5WillProperties(uint32_t delay, MQTT_Properties& props) : MQTT5MessageProperties(props), will_delay_interval(delay) {}
     MQTT5WillProperties(uint32_t delay = 0, uint8_t indicator = 0, uint32_t expiry = 0, const std::string &contype = {},
                            const std::string &resptopic = {}, H4AMC_BinaryData correlation = {},
-                           H4AMC_USER_PROPERTIES props = {}): will_delay_interval(delay), MQTT5MessageProperties(indicator,expiry,contype,resptopic,correlation,props) {
+                           H4AMC_USER_PROPERTIES props = {}) : MQTT5MessageProperties(indicator,expiry,contype,resptopic,correlation,props), will_delay_interval(delay) {
 
                            }
     uint32_t will_delay_interval;

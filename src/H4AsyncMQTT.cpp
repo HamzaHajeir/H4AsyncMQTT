@@ -35,7 +35,6 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 #include "lwip/apps/altcp_tls_mbedtls_opts.h"
 #endif
 
-H4AMC_MEM_POOL          mbx::pool;
 std::set<int>           H4AsyncMQTT::_inbound;
 H4AMC_PACKET_MAP        H4AsyncMQTT::_outbound;
 

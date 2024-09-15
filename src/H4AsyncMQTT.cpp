@@ -155,7 +155,7 @@ H4AsyncMQTT::H4AsyncMQTT(){
 
 void H4AsyncMQTT::_ACK(H4AMC_PACKET_MAP* m,PacketID id){ /// refakta?
     if(m->count(id)){
-        uint8_t* data=((*m)[id]).data;
+        uint8_t* data=((*m)[id]).get();
         mbx::clear(data);
         m->erase(id);
     } else _notify(H4AMC_OUTBOUND_QOS_ACK_FAIL,id); //H4AMC_PRINT("WHO TF IS %d???\n",id);
@@ -170,7 +170,7 @@ void H4AsyncMQTT::_startClean(){
 }
 
 void H4AsyncMQTT::_clearQQ(H4AMC_PACKET_MAP* m){
-    for(auto &i:*m) mbx::clear(i.second.data);
+    for(auto &i:*m) mbx::clear(i.second.get());
     m->clear();
 }
 
@@ -477,6 +477,7 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
 #endif
         [[fallthrough]];
     case SUBACK:
+    if (traits.type == SUBACK || traits.type == UNSUBACK) // Only for (UN)SUBACK.
     {
         bool badSub=false;
         for (auto &rc : traits.subreasons)
@@ -593,7 +594,7 @@ void H4AsyncMQTT::_handlePacket(uint8_t* data, size_t len, int n_handled, uint8_
                 auto len =traits.next.second;
                 if (!copy) { // Only copy once
                     mbx m(traits.next.first, traits.next.second);
-                    copy=data=m.data;
+                    copy=data=m.get();
                     len=m.len;
                     // Serial.printf("copy=%p\n", copy);
                 }
@@ -723,14 +724,14 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
     // [x] fetch topic
     std::string topic = _getTXAliasTopic(m._topic_alias);
     H4AMC_PRINT2("_insertTopicAlias %s %d alias %d\n", topic.c_str(), m._topic_index, m._topic_alias);
-    // H4AMC_DUMP4(m.data, m.len);
+    // H4AMC_DUMP4(m.get(), m.len);
     if (!topic.length() || !m._topic_index) {
         H4AMC_PRINT2("MISSING TOPIC ALIAS OR POS! %d %d\n", m.id, m._topic_index);
         return false;
     }
 #define INSERTION_METHOD 1
 
-#ifdef INSERTION_METHOD // Reallocates only once.
+#if INSERTION_METHOD // Reallocates only once.
     auto topicIt = std::find(remaining.begin(), remaining.end(), topic); 
     if (topicIt == remaining.end()) {
         H4AMC_PRINT2("Topic Alias has been already inserted in a previous packet\n");
@@ -739,19 +740,18 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
     // [x] insert topic
     std::vector<uint8_t> copy; 
     // Copy First byte of Fixed header
-    std::copy_n(m.data, 1, std::back_inserter(copy));
+    std::copy_n(m.get(), 1, std::back_inserter(copy));
     auto rl_len = H4AMC_Helpers::varBytesLength(m.remlen);
     m.remlen += topic.length();
     auto diff_bytes = H4AMC_Helpers::varBytesLength(m.remlen) - rl_len;
-    uint8_t firstByte = m.data[0];
-    std::vector<uint8_t> frag1{m.data+1+rl_len, m.data+m._topic_index};
-    std::vector<uint8_t> frag2{m.data+m._topic_index+2, m.data+m.len};
+    std::vector<uint8_t> frag1{m.get()+1+rl_len, m.get()+m._topic_index};
+    std::vector<uint8_t> frag2{m.get()+m._topic_index+2, m.get()+m.len};
 
-    auto ptr = mbx::realloc(m.data, m.len + topic.length() + diff_bytes);
+    auto ptr = mbx::realloc(m.get(), m.len + topic.length() + diff_bytes);
     
     uint32_t oldLen = m.len;
     if (ptr != nullptr){
-        m.data = ptr;
+        m.set(ptr);
         m.len += topic.length()+diff_bytes;
 
         copy.reserve(m.len);
@@ -780,9 +780,9 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
         copy.insert(copy.end(), std::make_move_iterator(frag2.begin()), std::make_move_iterator(frag2.end()));
         frag2.clear();
 
-        std::copy_n(copy.begin(), m.len, m.data);
+        std::copy_n(copy.begin(), m.len, m.get());
         H4AMC_PRINT4("INSERTED TOPIC NEW BUFFER:\n");
-        H4AMC_DUMP4(m.data, m.len);
+        H4AMC_DUMP4(m.get(), m.len);
         remaining.erase(topicIt);
         return true;
     }
@@ -791,15 +791,15 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
     std::vector<uint8_t> copy; 
     copy.reserve(m.len);
 
-    std::copy_n(m.data, m.len, std::back_inserter(copy));
+    std::copy_n(m.get(), m.len, std::back_inserter(copy));
 
     auto rem_bytes = H4AMC_Helpers::varBytesLength(m.remlen);
     m.remlen += topic.length();
     auto diff_bytes = H4AMC_Helpers::varBytesLength(m.remlen) - rem_bytes;
 
-    auto ptr = mbx::realloc(m.data, m.len + topic.length() + diff_bytes);
+    auto ptr = mbx::realloc(m.get(), m.len + topic.length() + diff_bytes);
     if (ptr != nullptr){
-        m.data = ptr;
+        m.set(ptr);
         m.len += topic.length()+diff_bytes;
 
         // Encode remlen to a buffer
@@ -820,9 +820,9 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
         copy.erase(copy.begin()+m._topic_index); // Erase Topic Length (Field1)
         copy.insert(copy.begin()+m._topic_index, buf, buf+addmeta); // A reallocation which would contribute to heap fragmentation / or abort with OOM
 
-        std::copy_n(copy.begin(), m.len, m.data);
+        std::copy_n(copy.begin(), m.len, m.get());
         H4AMC_PRINT4("INSERTED TOPIC NEW BUFFER:\n");
-        H4AMC_DUMP4(m.data, m.len);
+        H4AMC_DUMP4(m.get(), m.len);
         return true;
     }
 #endif
@@ -950,7 +950,7 @@ void H4AsyncMQTT::_resendPartialTxns(bool availSession){ // [ ] Rename to handle
             else {
                 if (m.isPublish()) {  // set dup & resend ONLY for PUBlISH packets (..?)
                     H4AMC_PRINT3("SET DUP %d\n", m.id);
-                    m.data[0] |= 0x08;
+                    m.get()[0] |= 0x08;
 #if MQTT5
                     if (!m.topic.length()) {
 #if H4AMC_MQTT5_INSERT_TOPIC_BY_ALIAS
@@ -965,13 +965,13 @@ void H4AsyncMQTT::_resendPartialTxns(bool availSession){ // [ ] Rename to handle
 #endif
                 }
                 H4AMC_PRINT3("RESEND %d\n", m.id);
-                H4AMC_DUMP4(m.data, m.len);
+                H4AMC_DUMP4(m.get(), m.len);
 #if MQTT5
                 if (m.isPublish() && m.id && _canPublishQoS(m.id)){
-                    _send(m.data,m.len,false);
+                    _send(m.get(),m.len,false);
                 }
 #else
-                _send(m.data,m.len,false);
+                _send(m.get(),m.len,false);
 #endif
             }
         }

@@ -32,7 +32,12 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 #pragma once
 #include <H4AsyncMQTT.h>
 
+#define STRINGBLOCKS_USE_MBX 0
+#if STRINGBLOCKS_USE_MBX
 using H4AMC_BLOCK_Q        = std::queue<mbx>;
+#else
+using H4AMC_BLOCK_Q        = std::queue<std::string>;
+#endif
 
 class Packet {
     protected:
@@ -78,7 +83,11 @@ class Packet {
                 void             _multiTopic(std::set<std::string> topix,H4AMC_SubscriptionOptions opts={});
                 uint8_t*         _poke16(uint8_t* p,uint16_t u);
                 void             _stringblock(const std::string& s);
-                uint8_t*         _serializeblock(uint8_t* p, mbx block);
+#if STRINGBLOCKS_USE_MBX
+                uint8_t*         _serializeblock(uint8_t* p, mbx& block);
+#else
+                uint8_t*         _serializeblock(uint8_t* p, std::string& block);
+#endif
                 uint8_t*         _applyfront(uint8_t* p);
         inline  void             _notify(H4AMC_FAILURE e, int i=0) { _parent->_notify(e,i); }
     public:

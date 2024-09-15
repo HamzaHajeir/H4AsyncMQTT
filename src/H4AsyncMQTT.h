@@ -126,16 +126,14 @@ public:
 struct H4AMC_PublishOptions {
     friend class H4AsyncMQTT;
     bool retain;
+    bool getRetained() { return retain; }
 #if MQTT5
     H4AMC_PublishOptions(bool retain = false, MQTT5PublishProperties props={}) : retain(retain), props(props) {}
     MQTT5PublishProperties& getProperties() { return props; }
-#else
-    H4AMC_PublishOptions(bool retain = false) : retain(retain) {}
-#endif
-    bool getRetained() { return retain; }
-#if MQTT5
 private:
     MQTT5PublishProperties props;
+#else
+    H4AMC_PublishOptions(bool retain = false) : retain(retain) {}
 #endif
 };
 
@@ -177,6 +175,7 @@ class mqttTraits {
         inline  uint16_t        _peek16(uint8_t* p){ return (*(p+1))|(*p << 8); }
         inline  uint16_t        _parse16(uint8_t** p) { auto r=_peek16(*p);  return *p+=2, r;}
         inline  uint8_t         _parse8(uint8_t** p) { return *(*p)++;}
+                uint8_t*        data;
         
     public:
                 uint8_t         conackflags=0;
@@ -185,7 +184,6 @@ class mqttTraits {
                 uint8_t         flags=0;
 
                 uint8_t*        protocolpayload=nullptr;
-                uint8_t*        data;
                 size_t          len;
                 uint8_t         type;
                 PacketID        id=0;
@@ -235,20 +233,22 @@ class mqttTraits {
         std::string             getPktName(){
             uint8_t t=type&0xf0;
             if(pktnames.count(t)) return pktnames[t];
-            else return stringFromInt(type,"02X");
+            else return stringFromInt(type,"%02X");
         }
                 void            dump();
 #else
-        std::string             getPktName(){ return stringFromInt(type,"02X"); }
+        std::string             getPktName(){ return stringFromInt(type,"%02X"); }
 #endif
         mqttTraits(){};
         mqttTraits(uint8_t* p,size_t s);
         mqttTraits (const mqttTraits&) = default;
-        mqttTraits (mqttTraits&&) = default;
+        mqttTraits (mqttTraits&&) = delete;
         mqttTraits& operator=(const mqttTraits&) = default;
-        mqttTraits& operator=(mqttTraits&&) = default;
+        mqttTraits& operator=(mqttTraits&&) = delete;
         ~mqttTraits() = default;
 
+        uint8_t*                get() { return data; }
+        void                    set(uint8_t* p) { data = p; }
         inline  bool            isPublish() { return (type & 0xf0) == PUBLISH; }
         inline  uint8_t*        start() { return data+1+offset; }
 };
@@ -322,7 +322,7 @@ class H4AsyncMQTT {
         // static  H4AMC_PACKET_MAP    _inbound;
         static  std::set<int>       _inbound;
                 uint32_t            _keepalive;
-                size_t              _nextId=1000;
+                PacketID            _nextId=1000;
         static  H4AMC_PACKET_MAP    _outbound;
                 std::string         _password;
                 std::string         _url;
@@ -382,7 +382,7 @@ class H4AsyncMQTT {
                                         if (_pending.size() && _outbound.count(_pending.front())){
                                             auto m = _outbound[_pending.front()];
                                             H4AMC_PRINT4("RUN FLOW %d\n", m.id);
-                                            _send(m.data, m.len, false);
+                                            _send(m.get(), m.len, false);
                                             _pending.pop();
                                         }
                                     }

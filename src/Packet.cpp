@@ -298,25 +298,46 @@ uint8_t* Packet::_poke16(uint8_t* p,uint16_t u){
 void Packet::_stringblock(const std::string& s){ 
     size_t sz=s.size();
     _bs+=sz+2;
-    _blox.push(mbx((uint8_t*) s.data(),sz,s.length())); // s.length() for copy.
+#if STRINGBLOCKS_USE_MBX
+    if (sz) {
+        _blox.push(std::move(mbx((uint8_t*) s.data(),sz,true)));
+    } else {
+        _blox.push(std::move(mbx(nullptr,0,false)));
+    }
+#else
+	_blox.push(s);
+#endif
 }
-
-uint8_t *Packet::_serializeblock(uint8_t* p_pos, mbx block)
+#if STRINGBLOCKS_USE_MBX
+uint8_t *Packet::_serializeblock(uint8_t* p_pos, mbx& block)
 {
     uint16_t n=block.len;
-    uint8_t* p=block.data;
     p_pos=_poke16(p_pos,n);
     if (n) // For empty strings
-        memcpy(p_pos,p,n);
+        memcpy(p_pos,block.get(),n);
     p_pos+=n;
 	return p_pos;
 }
+#else
+uint8_t *Packet::_serializeblock(uint8_t* p_pos, std::string& block)
+{
+    uint16_t n=block.length();
+    p_pos=_poke16(p_pos,n);
+    if (n) // For empty strings
+        memcpy(p_pos,block.data(),n);
+    p_pos+=n;
+	return p_pos;
+}
+#endif
 uint8_t* Packet::_applyfront(uint8_t* p_pos)
 {
     if (_blox.size()){
-        mbx tmp = _blox.front();
+        auto& tmp = _blox.front();
         p_pos = _serializeblock(p_pos, tmp);
-        tmp.clear();
+#if STRINGBLOCKS_USE_MBX
+        if (tmp.get())
+            tmp.clear();
+#endif
         _blox.pop();
     }
     return p_pos;

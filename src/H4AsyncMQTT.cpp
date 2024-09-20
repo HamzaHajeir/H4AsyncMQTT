@@ -749,7 +749,6 @@ bool H4AsyncMQTT::_insertTopicAlias(mqttTraits& m, std::vector<std::string>& rem
 
     auto ptr = mbx::realloc(m.get(), m.len + topic.length() + diff_bytes);
     
-    uint32_t oldLen = m.len;
     if (ptr != nullptr){
         m.set(ptr);
         m.len += topic.length()+diff_bytes;
